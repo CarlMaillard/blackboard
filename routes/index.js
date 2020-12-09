@@ -3,25 +3,56 @@ var router = express.Router();
 
 var articleModel = require('../models/articles')
 var orderModel = require('../models/orders')
+var userModel = require('../models/users')
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index');
+router.get('/', async function(req, res, next) {
+  var emptyStocks = await articleModel.find({stock:0})
+
+
+  var user = await userModel.findById('5c52e4efaa4beef85aad5e52')
+  var messages = user.messages;
+
+  var unreadMessages = 0;
+  for(var i=0; i< messages.length; i++){
+    if(messages[i].read == false){
+      unreadMessages +=1
+    }
+  }
+
+
+  var tasksAdmin = user.tasks
+  var taskInprogress = 0
+
+  for(var i=0; i< tasksAdmin.length; i++){
+    if(tasksAdmin[i].dateCloture == null){
+      taskInprogress =+1
+    }
+  } 
+
+  res.render('index', {emptyStocks: emptyStocks.length, unreadMessages,taskInprogress});
 });
 
 /* GET tasks page. */
-router.get('/tasks-page', function(req, res, next) {
-  res.render('tasks');
+router.get('/tasks-page', async function(req, res, next) {
+  var taskAdmin = await userModel.findById('5c52e4efaa4beef85aad5e52')
+  console.log(taskAdmin.tasks)
+  res.render('tasks',{tasks : taskAdmin.tasks} );
 });
 
 /* GET Messages page. */
-router.get('/messages-page', function(req, res, next) {
-  res.render('messages');
+router.get('/messages-page', async function(req, res, next) {
+var user = await userModel.findById('5c52e4efaa4beef85aad5e52')
+                      
+res.render('messages', {messages : user.messages});
 });
 
 /* GET Users page. */
-router.get('/users-page', function(req, res, next) {
-  res.render('users');
+router.get('/users-page', async function(req, res, next) {
+
+  var users = await userModel.find({status: "customer"});
+
+  res.render('users', {users} );
 });
 
 /* GET Catalog page. */
@@ -31,7 +62,7 @@ router.get('/catalog-page', async function(req, res, next) {
 
   res.render('catalog', {articles});
 });
-
+ 
 /* GET Orders-list page. */
 router.get('/orders-list-page', async function(req, res, next) {
 
@@ -51,9 +82,66 @@ router.get('/order-page', async function(req, res, next) {
 });
 
 /* GET chart page. */
-router.get('/charts', function(req, res, next) {
-  res.render('charts');
-});
+router.get('/charts', async function(req, res, next) {
+
+  var users = await userModel.find()
+
+  
+  var numMale = 0
+  var numFemale = 0  
+ 
+ 
+
+    for(var i=0; i < users.length ; i++){
+    if(users[i].gender == "male"){
+      numMale ++
+    } else {
+      numFemale ++
+    }   
+  }
+
+  var user = await userModel.findById('5c52e4efaa4beef85aad5e52')
+  var messages = user.messages;
+
+  var messNonlu = 0
+  var messLu = 0
+ 
+  for(var i=0; i< messages.length; i++){
+    if(messages[i].read == false){
+      messNonlu +=1
+    } else { 
+      messLu +=1
+    }
+  }
+ 
+  var orders = await orderModel.find({status_payment:"validated"});
+  var exp = 0
+  var nonExp= 0
+  console.log(orders)
+
+  for(var i=0; i<orders.length ; i++){
+    if(orders[i].status_shipment == true){
+      exp ++
+    } else {
+      nonExp ++
+    }
+  }
+
+ 
+  var aggr = orderModel.aggregate();
+   
+  aggr.match({status_payment:"validated"})
+
+  aggr.group({ _id : { year : {$year :'$date_insert' }, month:{ $month: '$date_insert' }}, CA:{$sum: '$total'}})
+   
+  aggr.sort({ _id : 1}) 
+
+  var totalCAByMonth =  await aggr.exec();
+
+
+  
+  res.render('charts', {numMale, numFemale, messLu, messNonlu, exp, nonExp, totalCAByMonth});
+}); 
 
 
 

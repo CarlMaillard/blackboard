@@ -46,8 +46,8 @@ body.fixed-nav.sidebar-toggled #content-wrapper {
 
 .scroll-to-top {
   position: fixed;
-  right: 15px;
-  bottom: 15px;
+  right: 20px;
+  bottom: 20px;
   display: none;
   width: 50px;
   height: 50px;
